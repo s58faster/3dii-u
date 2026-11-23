@@ -1751,7 +1751,7 @@ GX2Texture make_float_lut(u32 w, u32 h) {
     t.compMap = 0x00010203;
     GX2CalcSurfaceSizeAndAlignment(&f);
     GX2InitTextureRegs(&t);
-    f.image = memalign(f.alignment, f.imageSize);
+    f.image = gpu_memalign(f.alignment, f.imageSize);
     return t;
 }
 
@@ -1787,9 +1787,14 @@ bool find_lut(std::vector<LutTex> &pool, u32 max, u64 key, u32 w, u32 h, LutTex 
         }
     if (pool.capacity() < max) pool.reserve(max);  // draws hold pointers to these
     if (pool.size() < max) {
-        pool.emplace_back();
-        pool.back().t = make_float_lut(w, h);
+        GX2Texture texture = make_float_lut(w, h);
+        if (texture.surface.image) {
+            pool.emplace_back();
+            pool.back().t = texture;
+        }
     }
+    // If the pool cannot grow, reuse its oldest texture instead of uploading to a null image.
+    if (pool.empty()) FATAL("out of memory for a %ux%u lookup texture\n", w, h);
     auto it = std::min_element(pool.begin(), pool.end(), [](const LutTex &a, const LutTex &b) { return a.last_use < b.last_use; });
     st_luts++;
     if (it->valid && it->last_use + 2 >= use_counter) draw_done();
@@ -2089,6 +2094,7 @@ GX2Texture *proctex_rand_tex() {
     static GX2Texture t = [] {
         GX2Texture n = make_float_lut(144, 144);
         GX2Surface &f = n.surface;
+        if (!f.image) FATAL("out of memory for the procedural noise texture\n");
         u32 *d = (u32 *)f.image;
         for (u32 y = 0; y < 144; y++, d += f.pitch)
             for (u32 x = 0; x < 144; x++) d[x] = (u32)((proctex_rand(x, y) + 1.0f) * 127.5f + 0.5f) << 24;
