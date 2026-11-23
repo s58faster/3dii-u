@@ -18,6 +18,7 @@ No game data and no keys come with the builder. Everything it builds from is you
 4. **Your Files**: the lights turn cyan when the builder has what it needs.
    - **3DS keys** are only needed for encrypted dumps. The builder decrypts them the way `cia_to_decrypted_3ds.py` does: makerom turns a game's CIA into a `.3ds`, then pyctr decrypts it, with `boot9.bin` and `seeddb.bin` from your own 3DS. It looks for them in `.3ds` in your user folder (`C:\Users\<you>\.3ds`), pyctr's own place; choose another folder if yours are elsewhere. GodMode9 can dump both from a 3DS.
    - **Wii U otp.bin** comes from your own console's NAND backup. The WUP is packed with the key inside it; the builder never shows or stores that key.
+   - **3DS system files** are needed by some games, including Miitopia. Supply the `0004009b` and `000400db` folders from your own 3DS when prompted. See [What you need to supply](../README.md#what-you-need-to-supply) for where to get them.
 5. **Put it on**: your SD card (cards set up for a Wii U come first), or a folder.
 6. **Build It!** It takes a while, longer for bigger games: the game's code is recompiled for the Wii U and its shaders are compiled ahead of time. You see each stage tick off. Your PC stays usable meanwhile, **Cancel** stops it cleanly, and **Details** shows everything the build prints.
 7. Put the card in your Wii U and install with **WUP Installer GX2**. If you installed an older build of the same game, delete that one first (System Settings, Data Management), then install the new one.
@@ -28,25 +29,17 @@ Saves live in the game's own save storage on the console, like any installed gam
 
 ## Which games work
 
-`compat.json` lists the games tested on a real Wii U. They build with the same title IDs as the builds already handed out, so a rebuild replaces the old one. All of these play:
+[The compatibility database](compat.json) records test results and notes by 3DS title ID, so results can differ by region. Look for these statuses in the builder:
 
-- Tomodachi Life
-- New Super Mario Bros. 2
-- Paper Mario: Sticker Star
-- Mario & Luigi: Dream Team
-- Mario & Luigi: Paper Jam
-- Mario & Luigi: Superstar Saga + Bowser's Minions
-- Mario & Luigi: Bowser's Inside Story + Bowser Jr.'s Journey
-- Professor Layton and the Azran Legacy
-- Professor Layton and the Miracle Mask
-- The Legend of Zelda: Ocarina of Time 3D (the American version; the European one is listed too, still untested)
+- **Complete on Wii U** means someone finished the game on a real Wii U.
+- **Plays on Wii U** means someone tested it on a real Wii U. Check the notes for the tested update and any known issues.
+- **Untested** means the title has no confirmed Wii U result. The database also records Cemu and PC results where available.
 
-Any other game builds as **untested**. It gets a title ID of its own (`000500003Dxxxxxx`, kept clear of real Wii U titles), and code finders run on it, but nobody has played it yet: it may not start, or it may stop partway.
 
 **Updates and DLC** are read the way a 3DS reads them:
 - An update brings its own code and its own RomFS, which the game lays over the original files itself.
 - DLC brings one RomFS per content, which the game finds through the same calls it makes on a 3DS.
-- The nine tested games were tested without updates, so with one they count as untested too.
+- Some Wii U reports used an update, including Mario Kart 7 and Pokémon Ultra Sun and Ultra Moon. Check the notes for your title and region before choosing whether to build with an update.
 
 ## Mods
 
