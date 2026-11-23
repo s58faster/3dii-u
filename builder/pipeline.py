@@ -20,6 +20,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import types
 
@@ -143,27 +144,44 @@ def make_title(game_dir, out, info, art=None, icon_art=None, style='picture', re
 
 
 def copy_to(source, target_dir):
-    """the WUP folder into target_dir, compared file by file; what was there is replaced only once the new copy is right"""
+    """Copy and verify a WUP before replacing an existing install folder."""
     name = os.path.basename(source)
     target = os.path.join(target_dir, name)
-    new = target + '_new'
-    shutil.rmtree(new, ignore_errors=True)
-    os.makedirs(new)
-    names = sorted(os.listdir(source))
-    total, done = sum(os.path.getsize(os.path.join(source, n)) for n in names), 0
-    for n in names:
-        with open(os.path.join(source, n), 'rb') as i, open(os.path.join(new, n), 'wb') as o:
-            while chunk := i.read(8 << 20):
-                o.write(chunk)
-                done += len(chunk)
-                PROGRESS.at(done / total * 0.8)
-    if any(filecmp.cmpfiles(source, new, names, shallow=False)[1:]):
-        shutil.rmtree(new, ignore_errors=True)
-        fail('The copy came out different from the original: the card may be failing. Nothing was replaced.')
-    if os.path.isdir(target):
-        shutil.rmtree(target)
-    os.rename(new, target)
-    return target
+    staging = tempfile.mkdtemp(prefix='.3diiu-', dir=target_dir)
+    new = os.path.join(staging, 'new')
+    backup = os.path.join(staging, 'previous')
+    keep_backup = False
+    try:
+        os.mkdir(new)
+        names = sorted(os.listdir(source))
+        total, done = sum(os.path.getsize(os.path.join(source, n)) for n in names), 0
+        for n in names:
+            with open(os.path.join(source, n), 'rb') as i, open(os.path.join(new, n), 'wb') as o:
+                while chunk := i.read(8 << 20):
+                    o.write(chunk)
+                    done += len(chunk)
+                    PROGRESS.at(done / total * 0.8)
+        _, mismatches, errors = filecmp.cmpfiles(source, new, names, shallow=False)
+        if mismatches or errors:
+            fail('The copy could not be verified: the card may be failing. Nothing was replaced.')
+
+        had_previous = os.path.isdir(target)
+        if had_previous:
+            os.rename(target, backup)
+        try:
+            os.rename(new, target)
+        except BaseException:
+            if had_previous:
+                try:
+                    os.rename(backup, target)
+                except OSError as e:
+                    keep_backup = True
+                    raise OSError(f'The previous build could not be restored. It may still be at {backup}.') from e
+            raise
+        return target
+    finally:
+        if not keep_backup:
+            shutil.rmtree(staging, ignore_errors=True)
 
 
 def card_error(e):
