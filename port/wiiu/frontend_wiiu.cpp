@@ -310,6 +310,8 @@ static int hid_thread(int, void *) {
             pad_held = 0;
             pad_x = pad_y = pad_rx = pad_ry = 0;
             touch = false;
+            touch_was = false;
+            wiiu::mic_blow(false);
         }
         if (err == VPAD_READ_SUCCESS) {
             pad_held = st.hold;
